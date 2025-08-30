@@ -5,5 +5,3 @@ class UserRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    def create(self, ):
-        pass
