@@ -1,10 +1,12 @@
-from typing import AsyncIterable
+from typing import AsyncIterable, AsyncIterator
 
+from aiogram.types import TelegramObject, User
 from dishka import Provider, from_context, Scope, provide
 from sqlalchemy import Engine
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
 
 from app.bootstrap.config import Config
+from app.bootstrap.logging import logger
 from app.infrastructure.database.transaction_manager import TransactionManager
 
 
@@ -16,26 +18,34 @@ class ConfigProvider(Provider):
 
 class DbProvider(Provider):
 
+    scope = Scope.REQUEST
+
     @provide(scope=Scope.APP)
-    def get_engine(self, config: Config) -> Engine:
-        engine = create_async_engine(
-            config.db.construct_sqlalchemy_url(),
-            query_cache_size=1200,
-            pool_size=20,
-            max_overflow=200,
-            future=True,
+    async def engine(
+            self, config: Config
+    ) -> AsyncIterator[AsyncEngine]:
+        engine = create_async_engine(config.db.construct_sqlalchemy_url())
+        yield engine
+        await engine.dispose()
+
+    @provide(scope=Scope.APP)
+    def get_sessionmaker(
+            self, engine: AsyncEngine
+    ) -> async_sessionmaker[AsyncSession]:
+        factory = async_sessionmaker(
+            engine,
+            expire_on_commit=False,
+            class_=AsyncSession,
+            autoflush=False,
         )
-        return engine
+        logger.debug("Session provider was initialized")
+        return factory
 
-    @provide(scope=Scope.APP)
-    def get_session_pool(self, engine: Engine) -> async_sessionmaker[AsyncSession]:
-        session_pool = async_sessionmaker(bind=engine, expire_on_commit=False)
-        print(session_pool)
-        return session_pool
-
-    @provide(scope=Scope.REQUEST)
-    async def get_session(self, session_pool: async_sessionmaker[AsyncSession]) -> AsyncIterable[AsyncSession]:
-        async with session_pool() as session:
+    @provide
+    async def get_session(
+            self, factory: async_sessionmaker[AsyncSession]
+    ) -> AsyncIterable[AsyncSession]:
+        async with factory() as session:
             yield session
 
 
@@ -43,3 +53,15 @@ class ApplicationProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def get_transaction_manager(self, session: AsyncSession) -> TransactionManager:
         return TransactionManager(session)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_user(self, event: TelegramObject) -> User:
+        return event.chat
+
+
+
+
+
+
+
+

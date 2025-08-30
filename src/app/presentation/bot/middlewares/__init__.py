@@ -1,10 +1,11 @@
 from aiogram import Dispatcher
 
+from app.presentation.bot.middlewares.database import UserMiddleware
 
 
 def setup_middlewares(dp: Dispatcher):
     middleware_types = [
-
+        UserMiddleware()
     ]
 
     for middleware_type in middleware_types:
