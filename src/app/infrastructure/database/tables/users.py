@@ -15,4 +15,4 @@ class User(Base, TimestampMixin):
     first_name: Mapped[str]
     last_name: Mapped[str | None]
     username: Mapped[str | None]
-    language: Mapped[str]
+    language_code: Mapped[str]

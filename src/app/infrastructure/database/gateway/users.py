@@ -22,7 +22,7 @@ class UsersGateway:
             username=user.username,
             first_name=user.first_name,
             last_name=user.last_name,
-            language=user.language_code
+            language_code=user.language_code
         ).on_conflict_do_update(
             index_elements=[User.id],
             set_=dict(

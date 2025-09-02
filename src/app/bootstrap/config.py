@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 from environs import Env
@@ -152,3 +153,4 @@ def load_config(path: str = None) -> Config:
         db=DbConfig.from_env(env),
         redis=RedisConfig.from_env(env),
     )
+PROJECT_DIRECTORY = Path(__file__).parent.parent
